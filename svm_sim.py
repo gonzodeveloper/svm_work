@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
+import random
 
 
 def dist_from_hyplane(x, w, b):
@@ -16,7 +17,7 @@ def dist_from_hyplane(x, w, b):
     return (np.dot(w, x) + b) / np.linalg.norm(w)
 
 
-def generate_labeled_points(n, dim, gamma=0):
+def generate_labeled_points(n, dim, neg_gamma=0):
     '''
     Generate a list of linearly separable points with a minimum margin of separation
     :param n: number of points
@@ -36,11 +37,12 @@ def generate_labeled_points(n, dim, gamma=0):
         # Get point, label and its distance from hyperplane
         point = np.random.uniform(low=-1, high=1, size=dim)
         dist = dist_from_hyplane(point, norm, intercept)
-        label = 1 if dist > 0 else -1
-
-        # If point violates gamma, try again
-        if abs(dist) < gamma:
-            continue
+        if abs(dist) >= gamma and np.sign(dist) == 1:
+            label = 1
+        elif abs(dist) >= gamma and np.sign(dist) == -1:
+            label = -1
+        else:
+            label = random.choice([-1,1])
 
         points.append([point, label])
         gammas.append(abs(dist))
@@ -68,7 +70,7 @@ def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2):
     all_data = []
     for i in range(runs):
         # Get test data and its gamma, split 80-20 test train
-        data, margin = generate_labeled_points(n, gamma=margin, dim=d)
+        data, margin = generate_labeled_points(n, neg_gamma=margin, dim=d)
 
         train_dat, test_dat = train_test_split(data, train_size=train_ratio, test_size=(1-train_ratio))
         # Separate train points from labels
