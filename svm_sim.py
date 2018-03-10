@@ -30,7 +30,6 @@ def generate_labeled_points(n, dim, neg_gamma=0):
     intercept = 0  # np.random.uniform(low=-1, high=1)
 
     points = []
-    gammas = []
 
     i = 0
     while i < n:
@@ -45,13 +44,11 @@ def generate_labeled_points(n, dim, neg_gamma=0):
             label = random.choice([-1,1])
 
         points.append([point, label])
-        gammas.append(abs(dist))
         i += 1
 
     # Get minimum distance of any points from the plane. this is the margin
-    margin = min(gammas)
 
-    return points, margin
+    return points
 
 
 def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2):
@@ -70,7 +67,7 @@ def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2):
     all_data = []
     for i in range(runs):
         # Get test data and its gamma, split 80-20 test train
-        data, margin = generate_labeled_points(n, neg_gamma=margin, dim=d)
+        data = generate_labeled_points(n, neg_gamma=margin, dim=d)
 
         train_dat, test_dat = train_test_split(data, train_size=train_ratio, test_size=(1-train_ratio))
         # Separate train points from labels
@@ -107,7 +104,7 @@ def print_progress_bar (iteration, total, prefix='', suffix='', decimals=2, leng
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end='\r')
     # Print New Line on Complete
     if iteration == total:
         print()
@@ -122,15 +119,15 @@ if __name__ == "__main__":
     runs = 100
 
     c_lo = 1
-    c_hi = 2.1
-    c_step = 0.1
+    c_hi = 100
+    c_step = 10
 
     gamma_lo = 0
     gamma_hi = 1
     gamma_step = 0.1
 
     # File name to write
-    file = "dat.csv"
+    file = "dat2.csv"
 
     ############################################################
     tasks = []
