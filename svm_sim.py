@@ -117,24 +117,25 @@ if __name__ == "__main__":
     # Fix n to 100 points
     n = 100
     runs = 100
+    train_ratio = 0.3
 
-    c_lo = 1
-    c_hi = 100
-    c_step = 10
+    c_lo = 0.1
+    c_hi = 2
+    c_step = .02
 
     gamma_lo = 0
-    gamma_hi = 1
-    gamma_step = 0.1
+    gamma_hi = .5
+    gamma_step = 0.01
 
     # File name to write
-    file = "dat2.csv"
+    file = "dat.csv"
 
     ############################################################
     tasks = []
     total = 0
     for c in np.arange(c_lo, c_hi, c_step):
         for gamma in np.arange(gamma_lo, gamma_hi, gamma_step):
-            tasks.append((n, runs, c, gamma, ))
+            tasks.append((n, runs, c, gamma, train_ratio, ))
             total += 1
 
     # Progress bar stuff
@@ -154,6 +155,6 @@ if __name__ == "__main__":
 
     print("Writing data...")
     df = pd.concat(data)
-    df.to_csv(file, sep=',', index=False)
+    df.to_csv("data/{}".format(file), sep=',', index=False)
 
 
