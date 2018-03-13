@@ -36,9 +36,9 @@ def generate_labeled_points(n, dim, neg_gamma=0):
         # Get point, label and its distance from hyperplane
         point = np.random.uniform(low=-1, high=1, size=dim)
         dist = dist_from_hyplane(point, norm, intercept)
-        if abs(dist) >= gamma and np.sign(dist) == 1:
+        if abs(dist) >= neg_gamma and np.sign(dist) == 1:
             label = 1
-        elif abs(dist) >= gamma and np.sign(dist) == -1:
+        elif abs(dist) >= neg_gamma and np.sign(dist) == -1:
             label = -1
         else:
             label = random.choice([-1,1])
