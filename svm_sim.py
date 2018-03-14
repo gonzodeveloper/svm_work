@@ -50,7 +50,7 @@ def generate_labeled_points(n, dim, neg_gamma=0):
 
     return points
 
-def generate_gaussian_labeled_points(n_points, n_means, dim):
+def generate_gaussian_labeled_points(n_points, n_means, sd, dim):
     """ Generate n_points number of dim-dimensional points and n_means number of dim-dimensional means
         Label the points based on the minimum distance from the means
 
@@ -61,7 +61,6 @@ def generate_gaussian_labeled_points(n_points, n_means, dim):
 
     means = np.asarray(means)
 
-    sd = np.array(np.random.uniform(low=-1, high=1, size=dim))
 
     points = []
     for pt in range(n_points):
@@ -70,8 +69,7 @@ def generate_gaussian_labeled_points(n_points, n_means, dim):
         distances = np.sum(np.square(means - point), axis = 1)
 
         min_dist = np.min(distances)
-
-        label = 1 if min_dist <= 2*sd else -1
+        label = 1 if min_dist <= sd else -1
         points.append([point, label])
 
     return points
