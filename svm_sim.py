@@ -1,9 +1,10 @@
-from sklearn.svm import SVC
+from sklearn.svm import SVC, NuSVC
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 import random
+from scipy.spatial import distance
 
 
 def dist_from_hyplane(x, w, b):
@@ -17,7 +18,7 @@ def dist_from_hyplane(x, w, b):
     return (np.dot(w, x) + b) / np.linalg.norm(w)
 
 
-def generate_labeled_points(n, dim, neg_gamma=0):
+def generate_labeled_points(n, dim, gamma=0):
     '''
     Generate a list of linearly separable points with a minimum margin of separation
     :param n: number of points
@@ -36,12 +37,21 @@ def generate_labeled_points(n, dim, neg_gamma=0):
         # Get point, label and its distance from hyperplane
         point = np.random.uniform(low=-1, high=1, size=dim)
         dist = dist_from_hyplane(point, norm, intercept)
-        if abs(dist) >= neg_gamma and np.sign(dist) == 1:
-            label = 1
-        elif abs(dist) >= neg_gamma and np.sign(dist) == -1:
-            label = -1
+        if gamma < 0:
+            neg_gamma = abs(gamma)
+            if abs(dist) >= neg_gamma and np.sign(dist) == 1:
+                label = 1
+            elif abs(dist) >= neg_gamma and np.sign(dist) == -1:
+                label = -1
+            else:
+                label = random.choice([-1,1])
         else:
-            label = random.choice([-1,1])
+            if abs(dist) >= gamma and np.sign(dist) == 1:
+                label = 1
+            elif abs(dist) >= gamma and np.sign(dist) == -1:
+                label = -1
+            else:
+                continue
 
         points.append([point, label])
         i += 1
@@ -50,32 +60,45 @@ def generate_labeled_points(n, dim, neg_gamma=0):
 
     return points
 
-def generate_gaussian_labeled_points(n_points, n_means, sd, dim):
+
+def generate_gaussian_labeled_points(n, dim, gamma, n_means=2, radius=.5):
     """ Generate n_points number of dim-dimensional points and n_means number of dim-dimensional means
         Label the points based on the minimum distance from the means
 
      """
-    means = []
-    for i in range(n_means):
-        means.append(np.random.uniform(low=-1, high=1, size=dim))
-
-    means = np.asarray(means)
-
-
+    means = np.random.uniform(low=-1, high=1, size=(n_means, dim))
     points = []
-    for pt in range(n_points):
+    i = 0
+    avg = []
+    while i < n:
         point = np.random.uniform(low=-1, high=1, size=dim)
-        #Find the distance of each point from the means
-        distances = np.sum(np.square(means - point), axis = 1)
+        # Find the distance of each point from the means
+        distances = [distance.euclidean(mean, point) for mean in means]
 
-        min_dist = np.min(distances)
-        label = 1 if min_dist <= sd else -1
+        min_dist = min(distances)
+        avg.append(min_dist)
+        # Negative gamma
+        if gamma < 0:
+            if min_dist > (radius + abs(gamma)):
+                label = 1
+            elif min_dist < radius:
+                label = -1
+            else:
+                label = random.choice([-1, 1])
+        else:
+            if min_dist > (radius + gamma):
+                label = 1
+            elif min_dist < radius:
+                label = -1
+            else:
+                continue
         points.append([point, label])
-
+        i += 1
+    print(np.average(avg))
     return points
 
 
-def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2):
+def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2, kern="linear"):
     '''
     Run a series of simulations with an SVC. Given a set of labeled points create a train and test split.
     Record the error on testing classification as well as other parameters given to the SVC
@@ -91,7 +114,7 @@ def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2):
     all_data = []
     for i in range(runs):
         # Get test data and its gamma, split 80-20 test train
-        data = generate_labeled_points(n, neg_gamma=margin, dim=d)
+        data = generate_labeled_points(n, gamma=margin, dim=d)
 
         train_dat, test_dat = train_test_split(data, train_size=train_ratio, test_size=(1-train_ratio))
         # Separate train points from labels
@@ -103,13 +126,18 @@ def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2):
         test_labels = [x[1] for x in test_dat]
 
         # Train and test with single SVM
-        svm = SVC(kernel="linear", C=constant)
-        svm.fit(train_points, train_labels)
-        svm_error = svm.score(test_points, test_labels)
+        svc = SVC(kernel=kern, C=constant)
+        svc.fit(train_points, train_labels)
+        svc_error = svc.score(test_points, test_labels)
 
-        all_data.append([n, margin, constant, svm_error])
+        # Train and test with NuSvc
+        nusvc = NuSVC(kernel=kern, nu=constant)
+        nusvc.fit(train_points, train_labels)
+        nu_error = nusvc.score(test_points, test_labels)
 
-    df = pd.DataFrame(all_data, columns=['n', 'margin', 'constant', 'svm_error'])
+        all_data.append([n, margin, constant, svc_error, nu_error])
+
+    df = pd.DataFrame(all_data, columns=['n', 'margin', 'constant', 'svc_error', 'nu_error'])
     return df
 
 
@@ -139,25 +167,25 @@ if __name__ == "__main__":
     # SET PARAMETERS HERE, THEN RUN
     #############################################################
     # Fix n to 100 points
-    n = 100
+    n = 1000
     runs = 100
     train_ratio = 0.3
 
-    c_lo = 0.1
-    c_hi = 2
-    c_step = .02
+    constant_lo = 0.1
+    constant_hi = 1
+    constant_step = .02
 
-    gamma_lo = 0
-    gamma_hi = .5
-    gamma_step = 0.01
+    gamma_lo = -0.5
+    gamma_hi = 0.5
+    gamma_step = 0.02
 
     # File name to write
-    file = "dat.csv"
+    file = "svc_gamma_pos_to_neg.csv"
 
     ############################################################
     tasks = []
     total = 0
-    for c in np.arange(c_lo, c_hi, c_step):
+    for c in np.arange(constant_lo, constant_hi, constant_step):
         for gamma in np.arange(gamma_lo, gamma_hi, gamma_step):
             tasks.append((n, runs, c, gamma, train_ratio, ))
             total += 1
