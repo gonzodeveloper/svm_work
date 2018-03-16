@@ -61,12 +61,12 @@ def generate_labeled_points(n, dim, gamma=0):
     return points
 
 
-def generate_gaussian_labeled_points(n, dim, gamma, n_means=2, radius=.5):
+def generate_island_labeled_points(n, dim, gamma, n_islands=2, radius=.5):
     """ Generate n_points number of dim-dimensional points and n_means number of dim-dimensional means
         Label the points based on the minimum distance from the means
 
      """
-    means = np.random.uniform(low=-1, high=1, size=(n_means, dim))
+    means = np.random.uniform(low=-1, high=1, size=(n_islands, dim))
     points = []
     i = 0
     avg = []
@@ -97,6 +97,31 @@ def generate_gaussian_labeled_points(n, dim, gamma, n_means=2, radius=.5):
     print(np.average(avg))
     return points
 
+def generate_gaussian_labeled_points(n, n_means, dim, gamma, binary=True):
+    groups = []
+    idx = 0
+    # Generate a number of groups on the plane that are separated by at least the "margin's"
+    while idx < n_means:
+        mean = np.random.uniform(low=-1, high=1, size=dim)
+        obeys_margin = True
+        for x in groups:
+            if distance.euclidean(mean, x['mean']) < gamma:
+                obeys_margin = False
+        if obeys_margin:
+            std_dev = np.random.uniform(low=.1, high=.3)
+            label = random.choice([-1, 1]) if binary else idx
+            group = {'mean': mean, 'sd': std_dev, 'label': label }
+            groups.append(group)
+            idx += 1
+    # Generate points randomly assigned to groups,
+    points = []
+    for i in range(n):
+        # Pick a random group
+        group = random.choice(groups)
+        point = np.random.normal(loc=group['mean'], scale=group['sd'])
+        label = group['label']
+        points.append([point, label])
+    return points
 
 def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2, kern="linear"):
     '''
@@ -131,10 +156,12 @@ def simulation(n, runs, constant=1, margin=0, train_ratio=0.8, d=2, kern="linear
         svc_error = svc.score(test_points, test_labels)
 
         # Train and test with NuSvc
-        nusvc = NuSVC(kernel=kern, nu=constant)
-        nusvc.fit(train_points, train_labels)
-        nu_error = nusvc.score(test_points, test_labels)
-
+        try:
+            nusvc = NuSVC(kernel=kern, nu=constant)
+            nusvc.fit(train_points, train_labels)
+            nu_error = nusvc.score(test_points, test_labels)
+        except ValueError:
+            print(constant)
         all_data.append([n, margin, constant, svc_error, nu_error])
 
     df = pd.DataFrame(all_data, columns=['n', 'margin', 'constant', 'svc_error', 'nu_error'])
@@ -168,11 +195,11 @@ if __name__ == "__main__":
     #############################################################
     # Fix n to 100 points
     n = 1000
-    runs = 100
-    train_ratio = 0.3
+    runs = 10
+    train_ratio = 0.2
 
     constant_lo = 0.1
-    constant_hi = 1
+    constant_hi = 0.9
     constant_step = .02
 
     gamma_lo = -0.5
@@ -185,8 +212,9 @@ if __name__ == "__main__":
     ############################################################
     tasks = []
     total = 0
-    for c in np.arange(constant_lo, constant_hi, constant_step):
+    for const in np.arange(constant_lo, constant_hi, constant_step):
         for gamma in np.arange(gamma_lo, gamma_hi, gamma_step):
+            c = round(const, 2)
             tasks.append((n, runs, c, gamma, train_ratio, ))
             total += 1
 
