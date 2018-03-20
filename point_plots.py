@@ -1,32 +1,20 @@
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-import sys
-from svm_sim import generate_gaussian_labeled_points, generate_labeled_points, generate_island_labeled_points
+from point_generator import *
 
-if __name__ == "__main__":
-    usage = "\nusage: python3 point_plots.py [distribution] [binary_status] [margin]\n\n" \
-            "\tdistribution: \"linear\", \"gauss\", \"islands\"\n" \
-            "\tbinary_status: \"binary\", \"multi\"(only ok for gaussian)\n" \
-            "\tmargin: float value (-1, 1)"
-    if len(sys.argv) != 4:
-        print(usage)
-        exit(1)
-    type = sys.argv[1]
-    if type not in (["linear", "islands", "gauss"]):
-        print(usage)
-        exit(1)
+def plot_distro(type, binary, noise):
 
-    margin = float(sys.argv[3])
-    binary = True if sys.argv[2] == "binary" else False
+    l_points = []
     if type == 'linear':
-        l_points = generate_labeled_points(n=1000, dim=2, gamma=margin)
+        l_points = linear_labeled_points(n=1000, dim=2, gamma=noise)
     elif type == 'islands':
-        l_points = generate_island_labeled_points(n=1000, dim=2, gamma=margin)
+        l_points = island_labeled_points(n=1000, dim=2, gamma=noise)
     elif type == 'gauss':
-        l_points = generate_gaussian_labeled_points(n=1000, n_means=4, dim=2, gamma=margin, binary=binary)
+        l_points = gaussian_labeled_points(n=1000, n_means=4, dim=2, gamma=noise, binary=binary)
+    elif type == 'random_walk':
+        l_points = random_walks(n=1000, p=noise, grids=20)
     else:
-        print(usage)
-        exit(1)
+        l_points = None
+
     points = [x[0] for x in l_points]
     labels = [x[1] for x in l_points]
 
