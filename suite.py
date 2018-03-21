@@ -66,37 +66,27 @@ def simulation_options(error):
     print("\rPick a model \n"
           "1. SVC \n"
           "2. NuSVC \n"
-          "3. Logistic Regression")
+          "3. Gaussian Process Classifier")
     ins = input(">>>> ")
     if ins == "1":
         model = "svc"
     elif ins == "2":
         model = "nusvc"
     elif ins == "3":
-        model = "lr"
+        model = "gpc"
     else:
         model = None
         print(error)
         exit(1)
-    print("\nPick a Kernel or Logistic Regression Scheme\n"
+    print("\nPick a Kernel\n"
           "1. Linear kernel\n"
-          "2. Polynomial kernel\n"
-          "3. RBF kernel\n"
-          "4. OvR scheme\n"
-          "5. Multiclass scheme")
+          "2. RBF kernel\n")
     ins = input(">>>> ")
     if ins == "1":
         kern = 'linear'
     elif ins == "2":
-        kern = 'poly'
-    elif ins == "3":
         kern = 'rbf'
-    elif ins == "4":
-        kern = 'ovr'
-    elif ins == "5":
-        kern = 'multinomial'
     else:
-        kern = None
         print(error)
         exit(1)
     print("\nPick a data distribution\n"
@@ -141,7 +131,7 @@ def simulation_options(error):
           "these three variables. To set the range enter 3 comma+space separated values: min, max and step\n"
           "e.g. 0.1, 1, 0.05. Whichever value you would like to fix just enter a single value\n")
 
-    print("Enter parameter range (c for SVC or Logistic Regression, nu for NuSVC)")
+    print("Enter parameter range (c for SVC, nu for NuSVC, enter single value for GPC)")
     ins = input(">>>> ")
     vals = [float(x) for x in re.split(", ", ins)]
     if len(vals) == 1:

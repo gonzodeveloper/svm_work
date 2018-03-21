@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from point_generator import *
 
+
 def plot_distro(type, binary, noise):
 
     l_points = []

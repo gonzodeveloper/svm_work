@@ -1,8 +1,9 @@
 from sklearn.svm import  SVC, NuSVC
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import DotProduct, RBF
 from sklearn.preprocessing import StandardScaler
-from point_generator import  *
+from point_generator import *
 import pandas as pd
 
 
@@ -18,15 +19,19 @@ def simulation(n, dim, dist, data_class, point_param, model_type, param, kern, r
     :param d: dimensionality of points
     :return: dataframe with recorded data
     '''
+    # binary or multiclass data
     binary = True if data_class == 'binary' else False
-
-    models = {'svc': SVC(kernel=kern, C=param),
-                'nusvc': NuSVC(kernel=kern, nu=param),
-                'lr': LogisticRegression(multi_class=kern, C=param, solver='saga')}
+    multi = 'one_vs_one' if binary else 'one_vs_rest'
+    # if using gpc we need a kernel object
+    if model_type == 'gpc':
+        if kern == 'rbf':
+            kern = RBF()
+        elif kern == 'linear':
+            kern = DotProduct()
 
     all_data = []
     for i in range(runs):
-        # Get test data and its gamma, split 80-20 test train
+        # Get data according to given distribution and parameters
         if dist == 'linear':
             data = linear_labeled_points(n, dim, gamma=point_param)
         elif dist == 'islands':
@@ -37,7 +42,7 @@ def simulation(n, dim, dist, data_class, point_param, model_type, param, kern, r
             data = random_walks(n, p=point_param)
         else:
             data = None
-
+        # train test split according to ratio
         train_dat, test_dat = train_test_split(data, train_size=train_ratio, test_size=(1-train_ratio))
         # Separate train points from labels
         train_points = [x[0] for x in train_dat]
@@ -47,17 +52,16 @@ def simulation(n, dim, dist, data_class, point_param, model_type, param, kern, r
         test_points = [x[0] for x in test_dat]
         test_labels = [x[1] for x in test_dat]
 
-        # Linear regression has problem with float underflow. needs scaling
-        if model_type == 'lr':
-            scaler = StandardScaler()
-            scaler.fit(train_points)
-            train_points = scaler.transform(train_points)
-            scaler.fit(test_points)
-            test_points = scaler.transform(test_points)
-
-        # Train and test with single SVM
+        # Get a model specified, fit to data, score for error, mark error as -1 if fails
         try:
-            model = models[model_type]
+            if model_type == 'svc':
+                model = SVC(kernel=kern, C=param)
+            elif model_type == 'nusvc':
+                model = NuSVC(kernel=kern, nu=param)
+            elif model_type == 'gpc':
+                model = GaussianProcessClassifier(kernel=kern, multi_class=multi)
+            else:
+                model = None
             model.fit(train_points, train_labels)
             model_error = 1 - model.score(test_points, test_labels)
         except ValueError:
