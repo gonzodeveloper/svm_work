@@ -27,7 +27,7 @@ def plot_error(file, title, xvar, yvar):
 
     for i in np.arange(0, len(z_sd)):
         ax.scatter([xx[i], xx[i]], [yy[i], yy[i]], [zz[i] + z_sd[i], zz[i] - z_sd[i]],
-                marker="_", c='c')
+                marker="_", c='y')
 
     ax.set_xlabel(xvar)
     ax.set_ylabel(yvar)
@@ -45,5 +45,4 @@ def plot_error(file, title, xvar, yvar):
         ax.set_xlabel(xvar)
         ax.set_ylabel(yvar)
         ax.set_zlabel("Fail Rate")
-    fig.tit
     plt.show()

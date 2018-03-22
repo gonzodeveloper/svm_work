@@ -21,7 +21,7 @@ def simulation(n, dim, dist, data_class, point_param, model_type, param, kern, r
     '''
     # binary or multiclass data
     binary = True if data_class == 'binary' else False
-    multi = 'one_vs_one' if binary else 'one_vs_rest'
+    multi = 'one_vs_rest' if binary else 'one_vs_one'
     # if using gpc we need a kernel object
     if model_type == 'gpc':
         if kern == 'rbf':
