@@ -1,11 +1,10 @@
 from sklearn.svm import  SVC, NuSVC
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import DotProduct, RBF
 from sklearn.preprocessing import StandardScaler
 from point_generator import *
 import pandas as pd
-
 
 def simulation(n, dim, dist, data_class, point_param, model_type, param, kern, runs, train_ratio=0.8):
     '''
@@ -28,6 +27,11 @@ def simulation(n, dim, dist, data_class, point_param, model_type, param, kern, r
             kern = RBF()
         elif kern == 'linear':
             kern = DotProduct()
+    else:
+        if kern == 'rbf':
+            parameters = {'kernel': ('rbf', 'rbf'), 'gamma':[1e-3, 1e3]}
+        elif kern == 'linear':
+            parameters = {'kernel': ('linear', 'linear'), 'gamma':['auto','auto']}
 
     all_data = []
     for i in range(runs):
@@ -56,14 +60,21 @@ def simulation(n, dim, dist, data_class, point_param, model_type, param, kern, r
         try:
             if model_type == 'svc':
                 model = SVC(kernel=kern, C=param)
+                clf = GridSearchCV(model, parameters)
+                clf.fit(train_points, train_labels)
+                model_error = 1 - clf.score(test_points, test_labels)
             elif model_type == 'nusvc':
                 model = NuSVC(kernel=kern, nu=param)
+                clf = GridSearchCV(model, parameters)
+                clf.fit(train_points, train_labels)
+                model_error = 1 - clf.score(test_points, test_labels)
             elif model_type == 'gpc':
                 model = GaussianProcessClassifier(kernel=kern, multi_class=multi)
+                model.fit(train_points, train_labels)
+                model_error = 1 - model.score(test_points, test_labels)
             else:
                 model = None
-            model.fit(train_points, train_labels)
-            model_error = 1 - model.score(test_points, test_labels)
+                model_error = -1
         except ValueError:
             model_error = -1
 
